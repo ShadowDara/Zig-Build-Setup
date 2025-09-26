@@ -1,6 +1,9 @@
 // IMPORT STANDARD LIBRARY
 const std = @import("std");
 
+// DO NOT EDIT THIS LINE
+pub const version = "0.0.0";
+
 // =====================================================================
 
 // INFO
@@ -151,6 +154,8 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
 
 // Build Function for the Executable
 pub fn build(b: *std.Build) void {
+    std.debug.print("Zig Build Script Version: {s}\n\n", .{version});
+
     const target = b.standardTargetOptions(.{});
 
     // Change to ReleaseFast for Export Builds
@@ -273,6 +278,8 @@ pub fn build(b: *std.Build) void {
 
     // Run Tests after the Build
     b.getInstallStep().dependOn(&run_tests.step);
+
+    std.debug.print("Build Script End\n\n", .{});
 }
 
 //
@@ -282,9 +289,8 @@ pub fn build(b: *std.Build) void {
 //
 // TODO
 //
-// add the Tests File in the Test Directory
-//
 // add option for including directories, like librarys
+// -> feature need to be tested
 //
 // add option to although include zig files to the build
 //
