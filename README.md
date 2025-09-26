@@ -2,6 +2,8 @@
 
 Used Zig Compiler **Version 0.14.1** !!! This is very important
 
+More Infos are available in the `build.zig` file
+
 ### More Infos soon
 
 ### TODO

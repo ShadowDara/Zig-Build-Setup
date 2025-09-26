@@ -1,3 +1,4 @@
+// IMPORT STANDARD LIBRARY
 const std = @import("std");
 
 // =====================================================================
@@ -8,10 +9,19 @@ const std = @import("std");
 // C++ and C
 
 //
+//
+// ========== Include Directorys ==========
 
 // Source Code Directory
 // The Directory which contains your written code files
 pub const source_code_directory = "src";
+
+// Path to other C++ or C+ Librarys
+// Just them inside the List
+pub const included_directorys = [_][]const u8{
+    // "include",
+    // "external/libfoo/include",
+};
 
 //
 //
@@ -19,7 +29,8 @@ pub const source_code_directory = "src";
 
 // Entry File
 // The File with your main function
-pub const entry_file = "main.cpp";
+// The File must be in the source_code_directofy
+const entry_file_tmp = "main.cpp";
 
 // Language of the Entry File
 // Change to c, if you use C
@@ -42,7 +53,8 @@ pub const c_lang_version = "-std=c11";
 pub const test_folder = "test";
 
 // Name of the Main File for the Tests
-pub const test_entry_file = "test.cpp";
+// File must be in the Test Directory
+const test_entry_file_tmp = "test.cpp";
 
 // Name of the Test Executable
 pub const test_binary_name = "test_zig-with-c-and-cpp";
@@ -60,7 +72,7 @@ pub const optimize_target = true;
 
 //
 //
-// =====================================================================
+// ==========================================================
 //
 // Credit Shadowdara
 //
@@ -71,12 +83,24 @@ pub const optimize_target = true;
 //
 // IF NOT, NO CREDIT IS REQUIRED BUT WOULD BE APPRECIATED!
 //
-// =====================================================================
+// ==========================================================
 //
 //
 
+// Add Paths
+pub const entry_file = comptimeConcat(source_code_directory, "/", entry_file_tmp);
+pub const test_entry_file = comptimeConcat(test_folder, "/", test_entry_file_tmp);
+
+//
 // Source Code Functions
+//
 
+// add 3 Strings together
+fn comptimeConcat(a: []const u8, b: []const u8, c: []const u8) []const u8 {
+    return a ++ b ++ c;
+}
+
+// Get Lang for the entry File
 fn getEntryFileLang() []const u8 {
     if (std.mem.eql(u8, entry_file_lang, "cpp")) {
         return cpp_lang_version;
@@ -125,12 +149,23 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     return file_list.toOwnedSlice();
 }
 
+// Build Function for the Executable
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     // Change to ReleaseFast for Export Builds
     const optimize = if (optimize_target) b.standardOptimizeOption(.{}) else b.ReleaseFast;
 
+    // Collect all C++ Files in source Directory
+    const cpp_files = collectCppFiles(b, source_code_directory) catch unreachable;
+    // Collect all C Files in source Directory
+    const c_files = collectCFiles(b, source_code_directory) catch unreachable;
+
+    //
+    //
+    // Export Executable
+    //
+    //
     const exe = b.addExecutable(.{
         // Name of the export binary
         .name = export_binary_name,
@@ -142,11 +177,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = null,
     });
 
-    // Collect all C++ Files in source Directory
-    const cpp_files = collectCppFiles(b, source_code_directory) catch unreachable;
-    // Collect all C Files in source Directory
-    const c_files = collectCFiles(b, source_code_directory) catch unreachable;
-
     // Add an C++ Source File
     exe.addCSourceFiles(.{
         .files = &.{entry_file},
@@ -157,14 +187,21 @@ pub fn build(b: *std.Build) void {
     // Add C++ Source Files
     exe.addCSourceFiles(.{
         .files = cpp_files,
+        // Version of the Standard Library
         .flags = &.{cpp_lang_version},
     });
 
     // Add C Source Files
     exe.addCSourceFiles(.{
         .files = c_files,
+        // Version of the Standard Library
         .flags = &.{c_lang_version},
     });
+
+    // Add Library Directories
+    for (included_directorys) |path| {
+        exe.addIncludePath(b.path(path));
+    }
 
     // Link Standard Library for C
     exe.linkLibC();
@@ -182,7 +219,11 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Build and execute the programm");
     run_step.dependOn(&run_cmd.step);
 
+    //
+    //
     // Building and Running the Testprogramm
+    //
+    //
     const tests = b.addExecutable(.{
         // Executable Name
         .name = test_binary_name,
@@ -195,7 +236,7 @@ pub fn build(b: *std.Build) void {
 
     // Add Entry File for the Test Run
     tests.addCSourceFiles(.{
-        .files = &.{entry_file},
+        .files = &.{test_entry_file},
         // Version of the Standard Library
         .flags = &.{getEntryFileLang()},
     });
@@ -214,9 +255,18 @@ pub fn build(b: *std.Build) void {
         .flags = &.{c_lang_version},
     });
 
+    // Add Library Directories
+    for (included_directorys) |path| {
+        tests.addIncludePath(b.path(path));
+    }
+
     // Add C and C++ Standard Library to the tests
     tests.linkLibC();
     tests.linkLibCpp();
+
+    //
+    //
+    //
 
     const run_tests = b.addRunArtifact(tests);
     b.step("test", "Build and run tests").dependOn(&run_tests.step);
@@ -237,3 +287,4 @@ pub fn build(b: *std.Build) void {
 // add option for including directories, like librarys
 //
 // add option to although include zig files to the build
+//

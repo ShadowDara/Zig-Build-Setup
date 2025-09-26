@@ -1,4 +1,5 @@
 #include "function.h"
+#include "hello.h"
 
 #include <iostream>
 
@@ -9,6 +10,8 @@ int main() {
 
     std::string message = greet(name);
     std::cout << message << std::endl;
+
+    random_fact();
 
     return 0;
 }
