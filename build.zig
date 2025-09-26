@@ -7,13 +7,15 @@ const std = @import("std");
 // This is an Structured Build Script with Zig Version 0.14.1 for
 // C++ and C
 
+//
+
 // Source Code Directory
 // The Directory which contains your written code files
 pub const source_code_directory = "src";
 
-// Compiler Optimisation
-// Set to true for export builds and false for Debug builds
-pub const optimize_target = true;
+//
+//
+// ========== Programm Entry Point ==========
 
 // Entry File
 // The File with your main function
@@ -23,19 +25,53 @@ pub const entry_file = "main.cpp";
 // Change to c, if you use C
 pub const entry_file_lang = "cpp";
 
-// Name of the Export Executable
-pub const export_binary_name = "zig-with-c-and-cpp";
-
-// Name of the Test Executable
-pub const test_binary_name = "test_zig-with-c-and-cpp";
+//
+//
+// ========== Language Features ==========
 
 // Version of the C++ Standard Library
 pub const cpp_lang_version = "-std=c++17";
 // Version of the C Standard Library
 pub const c_lang_version = "-std=c11";
 
+//
+//
+// ========== Testing ==========
+
+// Name of the Tests Folder, where test code is stored
+pub const test_folder = "test";
+
+// Name of the Main File for the Tests
+pub const test_entry_file = "test.cpp";
+
+// Name of the Test Executable
+pub const test_binary_name = "test_zig-with-c-and-cpp";
+
+//
+//
+// ========== Exorting ==========
+
+// Name of the Export Executable
+pub const export_binary_name = "zig-with-c-and-cpp";
+
+// Compiler Optimisation
+// Set to true for export builds and false for Debug builds
+pub const optimize_target = true;
+
+//
+//
 // =====================================================================
 //
+// Credit Shadowdara
+//
+// LICENSE:
+//
+// IF YOUR PROJECT IS EITHER COMMERCIAL OR NOT OPEN SOURCE,
+// CREDIT IS REQUIRED VIA MIT LICENSE
+//
+// IF NOT, NO CREDIT IS REQUIRED BUT WOULD BE APPRECIATED!
+//
+// =====================================================================
 //
 //
 
@@ -188,3 +224,16 @@ pub fn build(b: *std.Build) void {
     // Run Tests after the Build
     b.getInstallStep().dependOn(&run_tests.step);
 }
+
+//
+//
+//
+//
+//
+// TODO
+//
+// add the Tests File in the Test Directory
+//
+// add option for including directories, like librarys
+//
+// add option to although include zig files to the build
