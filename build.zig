@@ -181,38 +181,26 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     return file_list.toOwnedSlice();
 }
 
-/// Lädt alle `.cpp`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
-/// Kompatibel mit Zig 0.14.1 Build-API.
-fn collectCppSourceFiles(
-    allocator: std.mem.Allocator,
-    dir_path: []const u8,
-    flags: []const []const u8,
-) ![]struct {
+//
+//
+// Library Include Functions
+// TODO
+// Need to refactor this soon
+//
+//
+
+const CSourceEntry = struct {
     path: std.Build.LazyPath,
     flags: []const []const u8,
-} {
-    var list = std.ArrayList(struct {
-        path: std.Build.LazyPath,
-        flags: []const []const u8,
-    }).init(allocator);
+};
 
-    const dir = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
-    var it = dir.iterate();
+const CppSourceEntry = struct {
+    path: std.Build.LazyPath,
+    flags: []const []const u8,
+};
 
-    while (try it.next()) |entry| {
-        if (entry.kind != .file) continue;
-        if (!std.mem.endsWith(u8, entry.name, ".cpp")) continue;
-
-        const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, entry.name });
-
-        try list.append(.{
-            .path = std.Build.LazyPath.relative(full_path),
-            .flags = flags,
-        });
-    }
-
-    return list.toOwnedSlice();
-}
+// TODO
+// Rekursiv Unterverzeichnisse für andere C files auch durchsuchen
 
 /// Lädt alle `.c`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
 /// Kompatibel mit Zig 0.14.1 Build-API.
@@ -220,14 +208,8 @@ pub fn collectCSourceFiles(
     allocator: std.mem.Allocator,
     dir_path: []const u8,
     flags: []const []const u8,
-) ![]struct {
-    path: std.Build.LazyPath,
-    flags: []const []const u8,
-} {
-    var list = std.ArrayList(struct {
-        path: std.Build.LazyPath,
-        flags: []const []const u8,
-    }).init(allocator);
+) ![]CSourceEntry {
+    var list = std.ArrayList(CSourceEntry).init(allocator);
 
     const cwd = std.fs.cwd();
     var dir = try cwd.openDir(dir_path, .{ .iterate = true });
@@ -241,14 +223,50 @@ pub fn collectCSourceFiles(
         const full_path = try std.fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
         defer allocator.free(full_path);
 
+        // Print the Path
+        std.debug.print("Full Path: {s}\n", .{full_path});
+
         try list.append(.{
-            .path = .{ .cwd_relative = full_path }, // ✅ korrekt für Zig 0.14.1
+            .path = .{ .cwd_relative = full_path },
             .flags = flags,
         });
     }
 
     return list.toOwnedSlice();
 }
+
+// /// Lädt alle `.cpp`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
+// /// Kompatibel mit Zig 0.14.1 Build-API.
+// pub fn collectCppSourceFiles(
+//     allocator: std.mem.Allocator,
+//     dir_path: []const u8,
+//     flags: []const []const u8,
+// ) ![]CppSourceEntry {
+//     var list = std.ArrayList(CSourceEntry).init(allocator);
+
+//     const cwd = std.fs.cwd();
+//     var dir = try cwd.openDir(dir_path, .{ .iterate = true });
+//     defer dir.close();
+
+//     var it = dir.iterate();
+//     while (try it.next()) |entry| {
+//         if (entry.kind != .file) continue;
+//         if (!std.mem.endsWith(u8, entry.name, ".cpp")) continue;
+
+//         const full_path = try std.fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
+//         defer allocator.free(full_path);
+
+//         // Print the Path
+//         std.debug.print("Full Path: {s}\n", .{full_path});
+
+//         try list.append(.{
+//             .path = .{ .cwd_relative = full_path },
+//             .flags = flags,
+//         });
+//     }
+
+//     return list.toOwnedSlice();
+// }
 
 //
 //
@@ -311,26 +329,32 @@ pub fn build(b: *std.Build) void {
     // Add Library Source Files
     for (library_paths) |path| {
         // Add C Files
-        const library_c_files = try collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
+        const library_c_files = collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
 
+        std.debug.print("Library Source: {s}\n", .{path});
+
+        // TODO
+        // Refactor this Code
         for (library_c_files) |c_file| {
+            std.debug.print("LazyPath variant: {s}\n", .{@tagName(c_file.path)});
+
             exe.addCSourceFile(.{
-                .path = c_file.path,
-                // .path = .{ .cwd_relative_path = c_file.path },
+                .file = c_file.path,
                 .flags = c_file.flags,
             });
         }
 
-        // Add C++ Files
-        const library_cpp_files = try collectCppSourceFiles(b.allocator, path, &.{cpp_lang_version}) catch unreachable;
+        // // Add C++ Files
+        // const library_cpp_files = collectCppSourceFiles(b.allocator, path, &.{cpp_lang_version}) catch unreachable;
 
-        for (library_cpp_files) |cpp_file| {
-            exe.addCSourceFile(.{
-                .path = cpp_file.path,
-                // .path = .{ .cwd_relative_path = cpp_file.path },
-                .flags = cpp_file.flags,
-            });
-        }
+        // // TODO
+        // // Refactor this Code
+        // for (library_cpp_files) |cpp_file| {
+        //     exe.addCSourceFile(.{
+        //         .file = cpp_file.path,
+        //         .flags = cpp_file.flags,
+        //     });
+        // }
     }
 
     // Link Standard Library for C
@@ -385,23 +409,37 @@ pub fn build(b: *std.Build) void {
         .flags = &.{c_lang_version},
     });
 
-    // Add Library Directories
+    // Add Library Include Directories
     for (include_paths) |path| {
         tests.addIncludePath(b.path(path));
     }
-    for (library_paths) |path| {
-        const library_c_files = collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
 
-        for (library_c_files) |c_file| {
-            exe.addCSourceFile(c_file);
-        }
+    // // Add Library Source Files
+    // for (library_paths) |path| {
+    //     // Add C Files
+    //     const library_c_files = collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
 
-        const library_cpp_files = collectCppSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
+    //     // TODO
+    //     // Refactor this Code
+    //     for (library_c_files) |c_file| {
+    //         tests.addCSourceFile(.{
+    //             .file = c_file.path,
+    //             .flags = c_file.flags,
+    //         });
+    //     }
 
-        for (library_cpp_files) |c_file| {
-            exe.addCSourceFile(c_file);
-        }
-    }
+    //     // // Add C++ Files
+    //     // const library_cpp_files = collectCppSourceFiles(b.allocator, path, &.{cpp_lang_version}) catch unreachable;
+
+    //     // // TODO
+    //     // // Refactor this Code
+    //     // for (library_cpp_files) |cpp_file| {
+    //     //     tests.addCSourceFile(.{
+    //     //         .file = cpp_file.path,
+    //     //         .flags = cpp_file.flags,
+    //     //     });
+    //     // }
+    // }
 
     // Add C and C++ Standard Library to the tests
     tests.linkLibC();
@@ -417,7 +455,7 @@ pub fn build(b: *std.Build) void {
     // Run Tests after the Build
     b.getInstallStep().dependOn(&run_tests.step);
 
-    std.debug.print("Build Script End\n\n", .{});
+    std.debug.print("====== Build Script End ======\n\n", .{});
 }
 
 //
@@ -434,4 +472,10 @@ pub fn build(b: *std.Build) void {
 // -> feature need to be tested
 //
 // add option to although include zig files to the build
+//
+
+//
+// WPF
+//
+// Get-ChildItem -Recurse | Where-Object { $_.Name -match '[^\u0000-\u007F]' }
 //
