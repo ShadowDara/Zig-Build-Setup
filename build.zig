@@ -3,6 +3,7 @@ const std = @import("std");
 
 // DO NOT EDIT THIS LINE
 pub const version = "0.0.0";
+pub const zig_version = "0.14.1";
 
 // ========================================
 
@@ -26,11 +27,11 @@ pub const source_code_directory = "src";
 // List for the Include Paths
 pub const include_paths = [_][]const u8{
     // "include",
-    "external/SDL3/include",
+    // "external/SDL3/include",
 };
 // List for Source Code Librarys
 pub const library_paths = [_][]const u8{
-    "external/SDL3/src",
+    // "external/SDL3/src",
 };
 
 //
@@ -272,7 +273,10 @@ pub fn collectCSourceFiles(
 //
 // Build Function for the Executable
 pub fn build(b: *std.Build) void {
-    std.debug.print("Zig Build Script Version: {s}\n\n", .{version});
+    std.debug.print("====== Zig Build Script ======\n", .{});
+    std.debug.print("====== Version: {s}\n", .{version});
+    std.debug.print("====== Made for Zig Version {s}\n", .{zig_version});
+    std.debug.print("Script running ...\n", .{});
 
     const target = b.standardTargetOptions(.{});
 
@@ -455,7 +459,7 @@ pub fn build(b: *std.Build) void {
     // Run Tests after the Build
     b.getInstallStep().dependOn(&run_tests.step);
 
-    std.debug.print("====== Build Script End ======\n\n", .{});
+    std.debug.print("====== Build Script End\n\n", .{});
 }
 
 //
