@@ -4,7 +4,7 @@ const std = @import("std");
 // DO NOT EDIT THIS LINE
 pub const version = "0.0.0";
 
-// =====================================================================
+// ========================================
 
 // INFO
 
@@ -21,9 +21,16 @@ pub const source_code_directory = "src";
 
 // Path to other C++ or C+ Librarys
 // Just them inside the List
-pub const included_directorys = [_][]const u8{
+// splitted up
+
+// List for the Include Paths
+pub const include_paths = [_][]const u8{
     // "include",
-    // "external/libfoo/include",
+    "external/SDL3/include",
+};
+// List for Source Code Librarys
+pub const library_paths = [_][]const u8{
+    "external/SDL3/src",
 };
 
 //
@@ -33,7 +40,14 @@ pub const included_directorys = [_][]const u8{
 // Entry File
 // The File with your main function
 // The File must be in the source_code_directofy
-const entry_file_tmp = "main.cpp";
+pub const entry_file_tmp = "main.cpp";
+
+// INFO
+//
+// If you want to use tests which is highly recommended, dont declare funtions
+// except main in your main file because this file can't be included in the
+// test binary because this would lead to an error because the programm has
+// 2 main functions
 
 // Language of the Entry File
 // Change to c, if you use C
@@ -55,16 +69,23 @@ pub const c_lang_version = "-std=c11";
 // Name of the Tests Folder, where test code is stored
 pub const test_folder = "test";
 
+// INFO
+//
+// I recommend storing the test files in another directory to prevent a mess
+// The Test binary will although include all files from your source directory
+// but the main entry file will be ignored, otherwise this would lead to an
+// error with 2 main functions
+
 // Name of the Main File for the Tests
 // File must be in the Test Directory
-const test_entry_file_tmp = "test.cpp";
+pub const test_entry_file_tmp = "test.cpp";
 
 // Name of the Test Executable
 pub const test_binary_name = "test_zig-with-c-and-cpp";
 
 //
 //
-// ========== Exorting ==========
+// ========== Exporting ==========
 
 // Name of the Export Executable
 pub const export_binary_name = "zig-with-c-and-cpp";
@@ -84,13 +105,21 @@ pub const optimize_target = true;
 // IF YOUR PROJECT IS EITHER COMMERCIAL OR NOT OPEN SOURCE,
 // CREDIT IS REQUIRED VIA MIT LICENSE
 //
-// IF NOT, NO CREDIT IS REQUIRED BUT WOULD BE APPRECIATED!
+// IF NOT, CREDIT IS NOT REQUIRED BUT WOULD BE HIGHLY
+// APPRECIATED!
 //
 // ==========================================================
 //
 //
 
-// Add Paths
+//
+// Ignore File in Language Stats in ".gitattributes"
+//
+// build.zig linguist-vendored
+// build.zig.zon linguist-vendored
+//
+
+// Combine Paths for entry files together
 pub const entry_file = comptimeConcat(source_code_directory, "/", entry_file_tmp);
 pub const test_entry_file = comptimeConcat(test_folder, "/", test_entry_file_tmp);
 
@@ -123,7 +152,7 @@ fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     while (try walker.next()) |entry| {
         if (entry.kind == .file and
             std.mem.endsWith(u8, entry.path, ".cpp") and
-            !std.mem.eql(u8, entry.path, entry_file))
+            !std.mem.eql(u8, entry.path, entry_file_tmp))
         {
             try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
         }
@@ -143,7 +172,7 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     while (try walker.next()) |entry| {
         if (entry.kind == .file and
             std.mem.endsWith(u8, entry.path, ".c") and
-            !std.mem.eql(u8, entry.path, entry_file))
+            !std.mem.eql(u8, entry.path, entry_file_tmp))
         {
             try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
         }
@@ -152,6 +181,77 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     return file_list.toOwnedSlice();
 }
 
+/// Lädt alle `.cpp`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
+/// Kompatibel mit Zig 0.14.1 Build-API.
+fn collectCppSourceFiles(
+    allocator: std.mem.Allocator,
+    dir_path: []const u8,
+    flags: []const []const u8,
+) ![]struct {
+    path: std.Build.LazyPath,
+    flags: []const []const u8,
+} {
+    var list = std.ArrayList(struct {
+        path: std.Build.LazyPath,
+        flags: []const []const u8,
+    }).init(allocator);
+
+    const dir = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
+    var it = dir.iterate();
+
+    while (try it.next()) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".cpp")) continue;
+
+        const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, entry.name });
+
+        try list.append(.{
+            .path = std.Build.LazyPath.relative(full_path),
+            .flags = flags,
+        });
+    }
+
+    return list.toOwnedSlice();
+}
+
+/// Lädt alle `.c`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
+/// Kompatibel mit Zig 0.14.1 Build-API.
+pub fn collectCSourceFiles(
+    allocator: std.mem.Allocator,
+    dir_path: []const u8,
+    flags: []const []const u8,
+) ![]struct {
+    path: std.Build.LazyPath,
+    flags: []const []const u8,
+} {
+    var list = std.ArrayList(struct {
+        path: std.Build.LazyPath,
+        flags: []const []const u8,
+    }).init(allocator);
+
+    const cwd = std.fs.cwd();
+    var dir = try cwd.openDir(dir_path, .{ .iterate = true });
+    defer dir.close();
+
+    var it = dir.iterate();
+    while (try it.next()) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
+
+        const full_path = try std.fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
+        defer allocator.free(full_path);
+
+        try list.append(.{
+            .path = .{ .cwd_relative = full_path }, // ✅ korrekt für Zig 0.14.1
+            .flags = flags,
+        });
+    }
+
+    return list.toOwnedSlice();
+}
+
+//
+//
 // Build Function for the Executable
 pub fn build(b: *std.Build) void {
     std.debug.print("Zig Build Script Version: {s}\n\n", .{version});
@@ -203,9 +303,34 @@ pub fn build(b: *std.Build) void {
         .flags = &.{c_lang_version},
     });
 
-    // Add Library Directories
-    for (included_directorys) |path| {
+    // Add Library Include Directories
+    for (include_paths) |path| {
         exe.addIncludePath(b.path(path));
+    }
+
+    // Add Library Source Files
+    for (library_paths) |path| {
+        // Add C Files
+        const library_c_files = try collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
+
+        for (library_c_files) |c_file| {
+            exe.addCSourceFile(.{
+                .path = c_file.path,
+                // .path = .{ .cwd_relative_path = c_file.path },
+                .flags = c_file.flags,
+            });
+        }
+
+        // Add C++ Files
+        const library_cpp_files = try collectCppSourceFiles(b.allocator, path, &.{cpp_lang_version}) catch unreachable;
+
+        for (library_cpp_files) |cpp_file| {
+            exe.addCSourceFile(.{
+                .path = cpp_file.path,
+                // .path = .{ .cwd_relative_path = cpp_file.path },
+                .flags = cpp_file.flags,
+            });
+        }
     }
 
     // Link Standard Library for C
@@ -261,8 +386,21 @@ pub fn build(b: *std.Build) void {
     });
 
     // Add Library Directories
-    for (included_directorys) |path| {
+    for (include_paths) |path| {
         tests.addIncludePath(b.path(path));
+    }
+    for (library_paths) |path| {
+        const library_c_files = collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
+
+        for (library_c_files) |c_file| {
+            exe.addCSourceFile(c_file);
+        }
+
+        const library_cpp_files = collectCppSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
+
+        for (library_cpp_files) |c_file| {
+            exe.addCSourceFile(c_file);
+        }
     }
 
     // Add C and C++ Standard Library to the tests
@@ -288,6 +426,9 @@ pub fn build(b: *std.Build) void {
 //
 //
 // TODO
+//
+// fix standard Optimisations
+// fix ReleaseMode
 //
 // add option for including directories, like librarys
 // -> feature need to be tested

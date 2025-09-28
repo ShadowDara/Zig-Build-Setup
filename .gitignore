@@ -1,3 +1,7 @@
+# External Folder
+external
+
+# Build and Cache Folders
 zig-out
 .zig-cache
 *.exe
