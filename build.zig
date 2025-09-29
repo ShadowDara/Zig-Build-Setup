@@ -28,19 +28,7 @@ pub const zig_version = "0.14.1";
 pub const source_code_directory = "src";
 
 // Path to other C++ or C+ Librarys
-// Just them inside the List
-// splitted up
-
-// List for the Include Paths
-// pub const include_paths = [_][]const u8{
-//     // "include",
-//     "external\\SDL3\\include\\SDL3",
-// };
-// // List for Source Code Librarys
-// pub const library_paths = [_][]const u8{
-//     "external\\SDL3\\src",
-// };
-
+// Just them inside the List with Name, Include Path and Source Path
 const libraries = [_]Library_Struct{
     Library_Struct{
         .name = "DARA_LIBARY",
@@ -167,9 +155,6 @@ fn getEntryFileLang() []const u8 {
     }
 }
 
-// TODO
-// Use this standard functions although for adding Librarys
-
 // Function to Collect all C++ Files
 fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     const allocator = b.allocator;
@@ -185,12 +170,6 @@ fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
         {
             const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, entry.path });
             try file_list.append(full_path);
-
-            // TODO
-            // Join Paths in other Collect Directory Function
-            std.debug.print("Source File Full Path: {s}\n", .{dir_path});
-            std.debug.print("Source File Full Path: {s}\n", .{entry.path});
-            std.debug.print("Source File Full Path: {s}\n", .{full_path});
         }
     }
 
@@ -251,101 +230,6 @@ fn normalizePath(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
 
 //
 //
-// Library Include Functions
-// TODO
-// Need to refactor this soon
-//
-//
-
-// const CSourceEntry = struct {
-//     path: std.Build.LazyPath,
-//     flags: []const []const u8,
-// };
-
-// const CppSourceEntry = struct {
-//     path: std.Build.LazyPath,
-//     flags: []const []const u8,
-// };
-
-// // TODO
-// // Rekursiv Unterverzeichnisse für andere C files auch durchsuchen
-
-// /// Sammelt alle `.c`-Dateien im angegebenen Verzeichnis.
-// /// Gibt absolute LazyPaths zurück (kompatibel mit Zig 0.14.1).
-// pub fn collectCSourceFiles(
-//     b: *std.Build,
-//     allocator: std.mem.Allocator,
-//     dir_path: []const u8,
-//     flags: []const []const u8,
-// ) ![]CSourceEntry {
-//     var list = std.ArrayList(CSourceEntry).init(allocator);
-
-//     const cwd = std.fs.cwd();
-//     var dir = try cwd.openDir(dir_path, .{ .iterate = true });
-//     defer dir.close();
-
-//     var it = dir.iterate();
-//     while (try it.next()) |entry| {
-//         if (entry.kind != .file) continue;
-//         if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
-
-//         const raw_path = try std.fs.path.join(allocator, &.{ dir_path, entry.name });
-
-//         const ndpath = b.pathJoin(&.{ dir_path, entry.name });
-//         std.debug.print("My Path {s}\n", .{ndpath});
-
-//         const full_path = try normalizePath(allocator, raw_path);
-//         defer allocator.free(full_path);
-
-//         std.debug.print("Full Path: {s}\n", .{full_path});
-
-//         try list.append(.{
-//             .path = .{ .cwd_relative = full_path },
-//             .flags = flags,
-//         });
-//     }
-
-//     return list.toOwnedSlice();
-// }
-
-// /// Lädt alle `.cpp`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
-// /// Kompatibel mit Zig 0.14.1 Build-API.
-// pub fn collectCppSourceFiles(
-//     allocator: std.mem.Allocator,
-//     dir_path: []const u8,
-//     flags: []const []const u8,
-// ) ![]CppSourceEntry {
-//     var list = std.ArrayList(CSourceEntry).init(allocator);
-
-//     const cwd = std.fs.cwd();
-//     var dir = try cwd.openDir(dir_path, .{ .iterate = true });
-//     defer dir.close();
-
-//     var it = dir.iterate();
-//     while (try it.next()) |entry| {
-//         if (entry.kind != .file) continue;
-//         if (!std.mem.endsWith(u8, entry.name, ".cpp")) continue;
-
-//         const full_path = try std.fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
-//         defer allocator.free(full_path);
-
-//         // Print the Path
-//         std.debug.print("Full Path: {s}\n", .{full_path});
-
-//         try list.append(.{
-//             .path = .{ .cwd_relative = full_path },
-//             .flags = flags,
-//         });
-//     }
-
-//     return list.toOwnedSlice();
-// }
-
-// TODO
-// Look at add static Library
-
-//
-//
 // Build Function for the Executable
 pub fn build(b: *std.Build) void {
     std.debug.print("====== Zig Build Script ======\n", .{});
@@ -370,7 +254,6 @@ pub fn build(b: *std.Build) void {
     //
     //
     // Export Executable
-    //
     //
     const exe = b.addExecutable(.{
         // Name of the export binary
@@ -421,10 +304,6 @@ pub fn build(b: *std.Build) void {
         // Add C++ Source Files
         const library_cpp_files = collectCppFiles(b, libary.source_path) catch unreachable;
 
-        for (library_cpp_files) |file| {
-            std.debug.print("Print {s}\n", .{file});
-        }
-
         lib.addCSourceFiles(.{ .files = library_cpp_files, .flags = &.{cpp_lang_version} });
 
         lib.addIncludePath(b.path(libary.include_path));
@@ -440,83 +319,12 @@ pub fn build(b: *std.Build) void {
         exe.addIncludePath(b.path(libary.include_path));
     }
 
-    //
-
-    // const dara_lib = b.addStaticLibrary(.{
-    //     .name = "DARA_LIBARY",
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-
-    // // 📌 Quelle
-    // dara_lib.addCSourceFiles(.{ .files = &.{"external/DARA_LIBARY/src/DARA.cpp"}, .flags = &.{cpp_lang_version} });
-
-    // // 📌 Include-Verzeichnis korrekt setzen (für #include "DARA_LIBARY/DARA.h")
-    // dara_lib.addIncludePath(b.path("external/DARA_LIBARY/include"));
-
-    // dara_lib.linkLibC();
-    // dara_lib.linkLibCpp();
-
-    // exe.linkLibrary(dara_lib);
-    // // exe.linkLibCpp();
-
-    // // Auch hier: Include-Path setzen, wenn main.zig mit @cImport("DARA_LIBARY/DARA.h") arbeitet
-    // exe.addIncludePath(b.path("external/DARA_LIBARY/include"));
-
-    //
-
-    // exe.addIncludePath(b.path("external/SDL3/include"));
-    // exe.addIncludePath(b.path("external/SDL3/include/SDL3"));
-
-    // exe.addLibraryPath(b.path("external/SDL3/src"));
-
-    // exe.linkSystemLibrary("SDL3");
-
-    // // Add Library Include Directories
-    // for (include_paths) |path| {
-    //     std.debug.print("Include Path {s}\n", .{path});
-    //     exe.addIncludePath(b.path(path));
-    // }
-
-    // // Add Library Source Files
-    // for (library_paths) |path| {
-    //     // Add C Files
-    //     const library_c_files = collectCFiles(b, path) catch unreachable;
-
-    //     //std.debug.print("Library Source: {s}\n", .{path});
-
-    //     // Add C Source Files
-    //     exe.addCSourceFiles(.{
-    //         .files = library_c_files,
-    //         // Version of the Standard Library
-    //         .flags = &.{c_lang_version},
-    //     });
-
-    //     // // Add C++ Files
-    //     // const library_cpp_files = collectCppFiles(b, path) catch unreachable;
-
-    //     // // TODO
-    //     // // Refactor this Code
-    //     // for (library_cpp_files) |cpp_file| {
-    //     //     exe.addCSourceFile(.{
-    //     //         .file = cpp_file.path,
-    //     //         .flags = cpp_file.flags,
-    //     //     });
-    //     // }
-    // }
-
-    // Link Standard Library for C
+    // Link Standard Library for C and C++
     exe.linkLibC();
-
-    // Link Standard Library for C++
     exe.linkLibCpp();
 
     // include src Path
     exe.addIncludePath(b.path(source_code_directory));
-
-    // TODO
-
-    // add option to include Assembly Files
 
     b.installArtifact(exe);
 
@@ -528,7 +336,6 @@ pub fn build(b: *std.Build) void {
     //
     //
     // Building and Running the Testprogramm
-    //
     //
     const tests = b.addExecutable(.{
         // Executable Name
@@ -593,44 +400,10 @@ pub fn build(b: *std.Build) void {
         tests.addIncludePath(b.path(libary.include_path));
     }
 
-    // // Add Library Include Directories
-    // for (include_paths) |path| {
-    //     tests.addIncludePath(b.path(path));
-    // }
-
-    // // Add Library Source Files
-    // for (library_paths) |path| {
-    //     // Add C Files
-    //     const library_c_files = collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
-
-    //     // TODO
-    //     // Refactor this Code
-    //     for (library_c_files) |c_file| {
-    //         tests.addCSourceFile(.{
-    //             .file = c_file.path,
-    //             .flags = c_file.flags,
-    //         });
-    //     }
-
-    //     // // Add C++ Files
-    //     // const library_cpp_files = collectCppSourceFiles(b.allocator, path, &.{cpp_lang_version}) catch unreachable;
-
-    //     // // TODO
-    //     // // Refactor this Code
-    //     // for (library_cpp_files) |cpp_file| {
-    //     //     tests.addCSourceFile(.{
-    //     //         .file = cpp_file.path,
-    //     //         .flags = cpp_file.flags,
-    //     //     });
-    //     // }
-    // }
-
     // Add C and C++ Standard Library to the tests
     tests.linkLibC();
     tests.linkLibCpp();
 
-    //
-    //
     //
 
     const run_tests = b.addRunArtifact(tests);
@@ -644,16 +417,12 @@ pub fn build(b: *std.Build) void {
 
 //
 //
-//
-//
-//
 // TODO
+//
+// add option to include Assembly Files
 //
 // fix standard Optimisations
 // fix ReleaseMode
-//
-// add option for including directories, like librarys
-// -> feature need to be tested
 //
 // add option to although include zig files to the build
 //
