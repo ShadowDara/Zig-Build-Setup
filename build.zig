@@ -27,11 +27,11 @@ pub const source_code_directory = "src";
 // List for the Include Paths
 pub const include_paths = [_][]const u8{
     // "include",
-    // "external/SDL3/include",
+    "external/SDL3/include",
 };
 // List for Source Code Librarys
 pub const library_paths = [_][]const u8{
-    // "external/SDL3/src",
+    "external/SDL3/src",
 };
 
 //
@@ -142,6 +142,9 @@ fn getEntryFileLang() []const u8 {
     }
 }
 
+// TODO
+// Check if the function search recursivly for source files in subfolders
+
 // Function to Collect all C++ Files
 fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     const allocator = b.allocator;
@@ -156,6 +159,11 @@ fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
             !std.mem.eql(u8, entry.path, entry_file_tmp))
         {
             try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
+
+            // TODO
+            // Join Paths in other Collect Directory Function
+            std.debug.print("Source File Full Path: {s}\n", .{dir_path});
+            std.debug.print("Source File Full Path: {s}\n", .{entry.path});
         }
     }
 
@@ -182,6 +190,18 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     return file_list.toOwnedSlice();
 }
 
+// Function for Path Normalizing
+fn normalizePath(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
+    const normalized = try allocator.alloc(u8, path.len);
+    @memcpy(normalized, path);
+    for (normalized) |*c| {
+        if (c.* == '\\') {
+            c.* = '/';
+        }
+    }
+    return normalized;
+}
+
 //
 //
 // Library Include Functions
@@ -203,8 +223,8 @@ const CppSourceEntry = struct {
 // TODO
 // Rekursiv Unterverzeichnisse für andere C files auch durchsuchen
 
-/// Lädt alle `.c`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
-/// Kompatibel mit Zig 0.14.1 Build-API.
+/// Sammelt alle `.c`-Dateien im angegebenen Verzeichnis.
+/// Gibt absolute LazyPaths zurück (kompatibel mit Zig 0.14.1).
 pub fn collectCSourceFiles(
     allocator: std.mem.Allocator,
     dir_path: []const u8,
@@ -221,10 +241,10 @@ pub fn collectCSourceFiles(
         if (entry.kind != .file) continue;
         if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
 
-        const full_path = try std.fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
+        const raw_path = try std.fs.path.join(allocator, &.{ dir_path, entry.name });
+        const full_path = try normalizePath(allocator, raw_path);
         defer allocator.free(full_path);
 
-        // Print the Path
         std.debug.print("Full Path: {s}\n", .{full_path});
 
         try list.append(.{
