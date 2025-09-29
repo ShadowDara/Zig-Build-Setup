@@ -381,6 +381,7 @@ pub fn build(b: *std.Build) void {
 
     // Add Library Include Directories
     for (include_paths) |path| {
+        // std.debug.print("Include Path {s}\n", .{path});
         exe.addIncludePath(.{ .cwd_relative = path });
     }
 

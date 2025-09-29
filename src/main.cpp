@@ -2,6 +2,8 @@
 #include "hello.h"
 // #include "../external/SDL3/include/SDL3/SDL.h"
 
+#include "recursiv/hi.h"
+
 #include <iostream>
 
 int main() {
