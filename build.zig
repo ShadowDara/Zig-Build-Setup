@@ -22,8 +22,9 @@ const libraries = [_]Library_Struct{
         .source_path = "external/DARA_LIBARY/src",
     },
     // Library_Struct{
-    //     .include_path = "external/lib2/include",
-    //     .source_path = "external/lib2/src",
+    //     .name = "DARA_LIBARY",
+    //     .include_path = "external/DARA_LIBARY/include",
+    //     .source_path = "external/DARA_LIBARY/src",
     // },
 };
 
