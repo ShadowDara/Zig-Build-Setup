@@ -3,7 +3,7 @@ const std = @import("std");
 const os_tag = @import("builtin").os.tag;
 
 // DO NOT EDIT THIS LINE
-pub const version = "0.0.1";
+pub const version = "0.0.2";
 pub const zig_version = "0.14.1";
 
 // ========================================
@@ -238,56 +238,56 @@ fn normalizePath(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
 //
 //
 
-const CSourceEntry = struct {
-    path: std.Build.LazyPath,
-    flags: []const []const u8,
-};
+// const CSourceEntry = struct {
+//     path: std.Build.LazyPath,
+//     flags: []const []const u8,
+// };
 
-const CppSourceEntry = struct {
-    path: std.Build.LazyPath,
-    flags: []const []const u8,
-};
+// const CppSourceEntry = struct {
+//     path: std.Build.LazyPath,
+//     flags: []const []const u8,
+// };
 
-// TODO
-// Rekursiv Unterverzeichnisse für andere C files auch durchsuchen
+// // TODO
+// // Rekursiv Unterverzeichnisse für andere C files auch durchsuchen
 
-/// Sammelt alle `.c`-Dateien im angegebenen Verzeichnis.
-/// Gibt absolute LazyPaths zurück (kompatibel mit Zig 0.14.1).
-pub fn collectCSourceFiles(
-    b: *std.Build,
-    allocator: std.mem.Allocator,
-    dir_path: []const u8,
-    flags: []const []const u8,
-) ![]CSourceEntry {
-    var list = std.ArrayList(CSourceEntry).init(allocator);
+// /// Sammelt alle `.c`-Dateien im angegebenen Verzeichnis.
+// /// Gibt absolute LazyPaths zurück (kompatibel mit Zig 0.14.1).
+// pub fn collectCSourceFiles(
+//     b: *std.Build,
+//     allocator: std.mem.Allocator,
+//     dir_path: []const u8,
+//     flags: []const []const u8,
+// ) ![]CSourceEntry {
+//     var list = std.ArrayList(CSourceEntry).init(allocator);
 
-    const cwd = std.fs.cwd();
-    var dir = try cwd.openDir(dir_path, .{ .iterate = true });
-    defer dir.close();
+//     const cwd = std.fs.cwd();
+//     var dir = try cwd.openDir(dir_path, .{ .iterate = true });
+//     defer dir.close();
 
-    var it = dir.iterate();
-    while (try it.next()) |entry| {
-        if (entry.kind != .file) continue;
-        if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
+//     var it = dir.iterate();
+//     while (try it.next()) |entry| {
+//         if (entry.kind != .file) continue;
+//         if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
 
-        const raw_path = try std.fs.path.join(allocator, &.{ dir_path, entry.name });
+//         const raw_path = try std.fs.path.join(allocator, &.{ dir_path, entry.name });
 
-        const ndpath = b.pathJoin(&.{ dir_path, entry.name });
-        std.debug.print("My Path {s}\n", .{ndpath});
+//         const ndpath = b.pathJoin(&.{ dir_path, entry.name });
+//         std.debug.print("My Path {s}\n", .{ndpath});
 
-        const full_path = try normalizePath(allocator, raw_path);
-        defer allocator.free(full_path);
+//         const full_path = try normalizePath(allocator, raw_path);
+//         defer allocator.free(full_path);
 
-        std.debug.print("Full Path: {s}\n", .{full_path});
+//         std.debug.print("Full Path: {s}\n", .{full_path});
 
-        try list.append(.{
-            .path = .{ .cwd_relative = full_path },
-            .flags = flags,
-        });
-    }
+//         try list.append(.{
+//             .path = .{ .cwd_relative = full_path },
+//             .flags = flags,
+//         });
+//     }
 
-    return list.toOwnedSlice();
-}
+//     return list.toOwnedSlice();
+// }
 
 // /// Lädt alle `.cpp`-Dateien im Verzeichnis und gibt sie als Array von { path, flags } zurück.
 // /// Kompatibel mit Zig 0.14.1 Build-API.
