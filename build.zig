@@ -28,11 +28,11 @@ pub const source_code_directory = "src";
 // List for the Include Paths
 pub const include_paths = [_][]const u8{
     // "include",
-    // "external\\SDL3",
+    "external\\SDL3\\include",
 };
 // List for Source Code Librarys
 pub const library_paths = [_][]const u8{
-    // "external\\SDL3",
+    "external\\SDL3\\src",
 };
 
 //
