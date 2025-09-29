@@ -97,6 +97,10 @@ pub const optimize_target = true;
 
 //
 //
+// =========== Logging ===========
+
+//
+//
 // ==========================================================
 //
 // Credit Shadowdara
@@ -143,7 +147,7 @@ fn getEntryFileLang() []const u8 {
 }
 
 // TODO
-// Check if the function search recursivly for source files in subfolders
+// Use this standard functions although for adding Librarys
 
 // Function to Collect all C++ Files
 fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
@@ -164,6 +168,7 @@ fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
             // Join Paths in other Collect Directory Function
             std.debug.print("Source File Full Path: {s}\n", .{dir_path});
             std.debug.print("Source File Full Path: {s}\n", .{entry.path});
+            std.debug.print("Source File Full Path: {s}\n", .{b.pathJoin(&.{ dir_path, entry.path })});
         }
     }
 
@@ -226,6 +231,7 @@ const CppSourceEntry = struct {
 /// Sammelt alle `.c`-Dateien im angegebenen Verzeichnis.
 /// Gibt absolute LazyPaths zurück (kompatibel mit Zig 0.14.1).
 pub fn collectCSourceFiles(
+    b: *std.Build,
     allocator: std.mem.Allocator,
     dir_path: []const u8,
     flags: []const []const u8,
@@ -242,6 +248,10 @@ pub fn collectCSourceFiles(
         if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
 
         const raw_path = try std.fs.path.join(allocator, &.{ dir_path, entry.name });
+
+        const ndpath = b.pathJoin(&.{ dir_path, entry.name });
+        std.debug.print("My Path {s}\n", .{ndpath});
+
         const full_path = try normalizePath(allocator, raw_path);
         defer allocator.free(full_path);
 
@@ -353,7 +363,7 @@ pub fn build(b: *std.Build) void {
     // Add Library Source Files
     for (library_paths) |path| {
         // Add C Files
-        const library_c_files = collectCSourceFiles(b.allocator, path, &.{c_lang_version}) catch unreachable;
+        const library_c_files = collectCSourceFiles(b, b.allocator, path, &.{c_lang_version}) catch unreachable;
 
         std.debug.print("Library Source: {s}\n", .{path});
 
