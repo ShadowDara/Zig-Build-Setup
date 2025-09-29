@@ -1,0 +1,7 @@
+{
+  "name": "Zig Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "postCreateCommand": "zig version"
+}

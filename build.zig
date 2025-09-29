@@ -1,5 +1,6 @@
 // IMPORT STANDARD LIBRARY
 const std = @import("std");
+const os_tag = @import("builtin").os.tag;
 
 // DO NOT EDIT THIS LINE
 pub const version = "0.0.1";
@@ -26,12 +27,12 @@ pub const source_code_directory = "src";
 
 // List for the Include Paths
 pub const include_paths = [_][]const u8{
-    // "include",
-    "external/SDL3/include",
+    "include",
+    "external\\SDL3",
 };
 // List for Source Code Librarys
 pub const library_paths = [_][]const u8{
-    "external/SDL3/src",
+    "external\\SDL3",
 };
 
 //
@@ -93,11 +94,13 @@ pub const export_binary_name = "zig-with-c-and-cpp";
 
 // Compiler Optimisation
 // Set to true for export builds and false for Debug builds
-pub const optimize_target = true;
+pub const optimize_target = false;
 
 //
 //
 // =========== Logging ===========
+
+// pub const enable_log = true;
 
 //
 //
@@ -186,6 +189,26 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     while (try walker.next()) |entry| {
         if (entry.kind == .file and
             std.mem.endsWith(u8, entry.path, ".c") and
+            !std.mem.eql(u8, entry.path, entry_file_tmp))
+        {
+            try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
+        }
+    }
+
+    return file_list.toOwnedSlice();
+}
+
+// Collect all Header Files
+fn collecthFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
+    const allocator = b.allocator;
+    var file_list = std.ArrayList([]const u8).init(allocator);
+
+    const dir = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
+    var walker = try dir.walk(allocator);
+
+    while (try walker.next()) |entry| {
+        if (entry.kind == .file and
+            std.mem.endsWith(u8, entry.path, ".h") and
             !std.mem.eql(u8, entry.path, entry_file_tmp))
         {
             try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
@@ -308,10 +331,11 @@ pub fn build(b: *std.Build) void {
     std.debug.print("====== Made for Zig Version {s}\n", .{zig_version});
     std.debug.print("Script running ...\n", .{});
 
+    // Optimisation
     const target = b.standardTargetOptions(.{});
 
     // Change to ReleaseFast for Export Builds
-    const optimize = if (optimize_target) b.standardOptimizeOption(.{}) else b.ReleaseFast;
+    const optimize = if (!optimize_target) b.standardOptimizeOption(.{}) else b.ReleaseFast;
 
     // Collect all C++ Files in source Directory
     const cpp_files = collectCppFiles(b, source_code_directory) catch unreachable;
@@ -357,29 +381,25 @@ pub fn build(b: *std.Build) void {
 
     // Add Library Include Directories
     for (include_paths) |path| {
-        exe.addIncludePath(b.path(path));
+        exe.addIncludePath(.{ .cwd_relative = path });
     }
 
     // Add Library Source Files
     for (library_paths) |path| {
         // Add C Files
-        const library_c_files = collectCSourceFiles(b, b.allocator, path, &.{c_lang_version}) catch unreachable;
+        const library_c_files = collectCFiles(b, path) catch unreachable;
 
-        std.debug.print("Library Source: {s}\n", .{path});
+        //std.debug.print("Library Source: {s}\n", .{path});
 
-        // TODO
-        // Refactor this Code
-        for (library_c_files) |c_file| {
-            std.debug.print("LazyPath variant: {s}\n", .{@tagName(c_file.path)});
-
-            exe.addCSourceFile(.{
-                .file = c_file.path,
-                .flags = c_file.flags,
-            });
-        }
+        // Add C Source Files
+        exe.addCSourceFiles(.{
+            .files = library_c_files,
+            // Version of the Standard Library
+            .flags = &.{c_lang_version},
+        });
 
         // // Add C++ Files
-        // const library_cpp_files = collectCppSourceFiles(b.allocator, path, &.{cpp_lang_version}) catch unreachable;
+        // const library_cpp_files = collectCppFiles(b, path) catch unreachable;
 
         // // TODO
         // // Refactor this Code
@@ -399,6 +419,10 @@ pub fn build(b: *std.Build) void {
 
     // include src Path
     exe.addIncludePath(b.path(source_code_directory));
+
+    // TODO
+
+    // add option to include Assembly Files
 
     b.installArtifact(exe);
 
