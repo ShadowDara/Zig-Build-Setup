@@ -196,38 +196,6 @@ fn collectCFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
     return file_list.toOwnedSlice();
 }
 
-// Collect all Header Files
-fn collecthFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
-    const allocator = b.allocator;
-    var file_list = std.ArrayList([]const u8).init(allocator);
-
-    const dir = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
-    var walker = try dir.walk(allocator);
-
-    while (try walker.next()) |entry| {
-        if (entry.kind == .file and
-            std.mem.endsWith(u8, entry.path, ".h") and
-            !std.mem.eql(u8, entry.path, entry_file_tmp))
-        {
-            try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
-        }
-    }
-
-    return file_list.toOwnedSlice();
-}
-
-// Function for Path Normalizing
-fn normalizePath(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
-    const normalized = try allocator.alloc(u8, path.len);
-    @memcpy(normalized, path);
-    for (normalized) |*c| {
-        if (c.* == '\\') {
-            c.* = '/';
-        }
-    }
-    return normalized;
-}
-
 //
 //
 // Build Function for the Executable
@@ -317,6 +285,8 @@ pub fn build(b: *std.Build) void {
 
         // add Header files to the executable
         exe.addIncludePath(b.path(libary.include_path));
+
+        std.debug.print("Built: {s}\n", .{libary.name});
     }
 
     // Link Standard Library for C and C++
@@ -327,6 +297,8 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(b.path(source_code_directory));
 
     b.installArtifact(exe);
+
+    std.debug.print("Built: {s}\n", .{export_binary_name});
 
     // to run the programm
     const run_cmd = b.addRunArtifact(exe);
@@ -412,7 +384,7 @@ pub fn build(b: *std.Build) void {
     // Run Tests after the Build
     b.getInstallStep().dependOn(&run_tests.step);
 
-    std.debug.print("====== Build Script End\n\n", .{});
+    std.debug.print("====== Finished Build Script\n\n", .{});
 }
 
 //
