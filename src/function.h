@@ -3,4 +3,8 @@
 #include <string>
 #include <iostream>
 
-std::string greet(const std::string& name);
+#include "SDL.h"
+
+std::string greet(const std::string &name);
+
+bool runSDL3Test();

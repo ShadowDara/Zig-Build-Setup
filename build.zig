@@ -384,38 +384,42 @@ pub fn build(b: *std.Build) void {
         .flags = &.{c_lang_version},
     });
 
-    // Add Library Include Directories
-    for (include_paths) |path| {
-        std.debug.print("Include Path {s}\n", .{path});
-        exe.addIncludePath(b.path(path));
-    }
+    exe.addIncludePath(b.path("external/SDL3/include"));
+    exe.addIncludePath(b.path("external/SDL3/include/SDL3"));
+    exe.addLibraryPath(b.path("external/SDL3/src"));
 
-    // Add Library Source Files
-    for (library_paths) |path| {
-        // Add C Files
-        const library_c_files = collectCFiles(b, path) catch unreachable;
+    // // Add Library Include Directories
+    // for (include_paths) |path| {
+    //     std.debug.print("Include Path {s}\n", .{path});
+    //     exe.addIncludePath(b.path(path));
+    // }
 
-        //std.debug.print("Library Source: {s}\n", .{path});
+    // // Add Library Source Files
+    // for (library_paths) |path| {
+    //     // Add C Files
+    //     const library_c_files = collectCFiles(b, path) catch unreachable;
 
-        // Add C Source Files
-        exe.addCSourceFiles(.{
-            .files = library_c_files,
-            // Version of the Standard Library
-            .flags = &.{c_lang_version},
-        });
+    //     //std.debug.print("Library Source: {s}\n", .{path});
 
-        // // Add C++ Files
-        // const library_cpp_files = collectCppFiles(b, path) catch unreachable;
+    //     // Add C Source Files
+    //     exe.addCSourceFiles(.{
+    //         .files = library_c_files,
+    //         // Version of the Standard Library
+    //         .flags = &.{c_lang_version},
+    //     });
 
-        // // TODO
-        // // Refactor this Code
-        // for (library_cpp_files) |cpp_file| {
-        //     exe.addCSourceFile(.{
-        //         .file = cpp_file.path,
-        //         .flags = cpp_file.flags,
-        //     });
-        // }
-    }
+    //     // // Add C++ Files
+    //     // const library_cpp_files = collectCppFiles(b, path) catch unreachable;
+
+    //     // // TODO
+    //     // // Refactor this Code
+    //     // for (library_cpp_files) |cpp_file| {
+    //     //     exe.addCSourceFile(.{
+    //     //         .file = cpp_file.path,
+    //     //         .flags = cpp_file.flags,
+    //     //     });
+    //     // }
+    // }
 
     // Link Standard Library for C
     exe.linkLibC();
