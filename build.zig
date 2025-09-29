@@ -1,9 +1,11 @@
-// ========================================
-
+///////////////////////////////////////////////
+//
 // INFO
-
-// This is an Structured Build Script with Zig Version 0.14.1 for
-// C++ and C
+//
+// This is an Structured Build Script with
+// Zig Version 0.14.1 for C++ and C
+//
+///////////////////////////////////////////////
 
 //
 //
@@ -22,9 +24,9 @@ const libraries = [_]Library_Struct{
         .source_path = "external/DARA_LIBARY/src",
     },
     // Library_Struct{
-    //     .name = "DARA_LIBARY",
-    //     .include_path = "external/DARA_LIBARY/include",
-    //     .source_path = "external/DARA_LIBARY/src",
+    //     .name = "SDL3",
+    //     .include_path = "external/SDL3/include",
+    //     .source_path = "external/SDL3/src",
     // },
 };
 
@@ -127,12 +129,14 @@ const Library_Struct = struct {
 pub const version = "0.0.2";
 pub const zig_version = "0.14.1";
 
+////////////////////////////////////////////////////////////
 //
 // Ignore File in Language Stats in ".gitattributes"
 //
 // build.zig linguist-vendored
 // build.zig.zon linguist-vendored
 //
+////////////////////////////////////////////////////////////
 
 // Combine Paths for entry files together
 pub const entry_file = comptimeConcat(source_code_directory, "/", entry_file_tmp);
@@ -290,6 +294,12 @@ pub fn build(b: *std.Build) void {
         std.debug.print("Built: {s}\n", .{libary.name});
     }
 
+    // const mymath = b.dependency("mymath", .{
+    //     .path = "../mymath",
+    // });
+
+    // exe.addModule("mymath", mymath.module("default"));
+
     // Link Standard Library for C and C++
     exe.linkLibC();
     exe.linkLibCpp();
@@ -389,19 +399,10 @@ pub fn build(b: *std.Build) void {
 }
 
 //
-//
 // TODO
-//
 // add option to include Assembly Files
 //
 // fix standard Optimisations
 // fix ReleaseMode
 //
 // add option to although include zig files to the build
-//
-
-//
-// WPF
-//
-// Get-ChildItem -Recurse | Where-Object { $_.Name -match '[^\u0000-\u007F]' }
-//
