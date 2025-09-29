@@ -2,7 +2,7 @@
 const std = @import("std");
 
 // DO NOT EDIT THIS LINE
-pub const version = "0.0.0";
+pub const version = "0.0.1";
 pub const zig_version = "0.14.1";
 
 // ========================================
