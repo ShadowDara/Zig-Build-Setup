@@ -1,17 +1,3 @@
-// IMPORT STANDARD LIBRARY
-const std = @import("std");
-
-// Library Struct
-const Library_Struct = struct {
-    name: []const u8,
-    include_path: []const u8,
-    source_path: []const u8,
-};
-
-// DO NOT EDIT THIS LINE
-pub const version = "0.0.2";
-pub const zig_version = "0.14.1";
-
 // ========================================
 
 // INFO
@@ -125,6 +111,20 @@ pub const optimize_target = false;
 // ==========================================================
 //
 //
+
+// IMPORT STANDARD LIBRARY
+const std = @import("std");
+
+// Library Struct
+const Library_Struct = struct {
+    name: []const u8,
+    include_path: []const u8,
+    source_path: []const u8,
+};
+
+// DO NOT EDIT THIS LINE
+pub const version = "0.0.2";
+pub const zig_version = "0.14.1";
 
 //
 // Ignore File in Language Stats in ".gitattributes"
