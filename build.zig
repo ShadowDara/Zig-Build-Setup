@@ -27,11 +27,11 @@ pub const source_code_directory = "src";
 // List for the Include Paths
 pub const include_paths = [_][]const u8{
     // "include",
-    // "external\\SDL3\\include",
+    "external\\SDL3\\include\\SDL3",
 };
 // List for Source Code Librarys
 pub const library_paths = [_][]const u8{
-    // "external\\SDL3\\src",
+    "external\\SDL3\\src",
 };
 
 //
@@ -93,7 +93,7 @@ pub const export_binary_name = "zig-with-c-and-cpp";
 
 // Compiler Optimisation
 // Set to true for export builds and false for Debug builds
-pub const optimize_target = true;
+pub const optimize_target = false;
 
 //
 //
@@ -387,7 +387,7 @@ pub fn build(b: *std.Build) void {
     // Add Library Include Directories
     for (include_paths) |path| {
         std.debug.print("Include Path {s}\n", .{path});
-        exe.addIncludePath(.{ .cwd_relative = path });
+        exe.addIncludePath(b.path(path));
     }
 
     // Add Library Source Files
