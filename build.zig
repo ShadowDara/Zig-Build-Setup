@@ -1,6 +1,5 @@
 // IMPORT STANDARD LIBRARY
 const std = @import("std");
-const os_tag = @import("builtin").os.tag;
 
 // DO NOT EDIT THIS LINE
 pub const version = "0.0.2";
@@ -28,11 +27,11 @@ pub const source_code_directory = "src";
 // List for the Include Paths
 pub const include_paths = [_][]const u8{
     // "include",
-    "external\\SDL3\\include",
+    // "external\\SDL3\\include",
 };
 // List for Source Code Librarys
 pub const library_paths = [_][]const u8{
-    "external\\SDL3\\src",
+    // "external\\SDL3\\src",
 };
 
 //
@@ -94,7 +93,7 @@ pub const export_binary_name = "zig-with-c-and-cpp";
 
 // Compiler Optimisation
 // Set to true for export builds and false for Debug builds
-pub const optimize_target = false;
+pub const optimize_target = true;
 
 //
 //
@@ -322,6 +321,9 @@ fn normalizePath(allocator: std.mem.Allocator, path: []const u8) ![]const u8 {
 //     return list.toOwnedSlice();
 // }
 
+// TODO
+// Look at add static Library
+
 //
 //
 // Build Function for the Executable
@@ -335,7 +337,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     // Change to ReleaseFast for Export Builds
-    const optimize = if (!optimize_target) b.standardOptimizeOption(.{}) else b.ReleaseFast;
+    const optimize = if (!optimize_target)
+        b.standardOptimizeOption(.{})
+    else
+        .ReleaseFast;
 
     // Collect all C++ Files in source Directory
     const cpp_files = collectCppFiles(b, source_code_directory) catch unreachable;
@@ -381,7 +386,7 @@ pub fn build(b: *std.Build) void {
 
     // Add Library Include Directories
     for (include_paths) |path| {
-        // std.debug.print("Include Path {s}\n", .{path});
+        std.debug.print("Include Path {s}\n", .{path});
         exe.addIncludePath(.{ .cwd_relative = path });
     }
 
