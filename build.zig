@@ -1,6 +1,13 @@
 // IMPORT STANDARD LIBRARY
 const std = @import("std");
 
+// Library Struct
+const Library_Struct = struct {
+    name: []const u8,
+    include_path: []const u8,
+    source_path: []const u8,
+};
+
 // DO NOT EDIT THIS LINE
 pub const version = "0.0.2";
 pub const zig_version = "0.14.1";
@@ -25,13 +32,25 @@ pub const source_code_directory = "src";
 // splitted up
 
 // List for the Include Paths
-pub const include_paths = [_][]const u8{
-    // "include",
-    "external\\SDL3\\include\\SDL3",
-};
-// List for Source Code Librarys
-pub const library_paths = [_][]const u8{
-    "external\\SDL3\\src",
+// pub const include_paths = [_][]const u8{
+//     // "include",
+//     "external\\SDL3\\include\\SDL3",
+// };
+// // List for Source Code Librarys
+// pub const library_paths = [_][]const u8{
+//     "external\\SDL3\\src",
+// };
+
+const libraries = [_]Library_Struct{
+    Library_Struct{
+        .name = "DARA_LIBARY",
+        .include_path = "external/DARA_LIBARY/include",
+        .source_path = "external/DARA_LIBARY/src",
+    },
+    // Library_Struct{
+    //     .include_path = "external/lib2/include",
+    //     .source_path = "external/lib2/src",
+    // },
 };
 
 //
@@ -164,13 +183,14 @@ fn collectCppFiles(b: *std.Build, dir_path: []const u8) ![]const []const u8 {
             std.mem.endsWith(u8, entry.path, ".cpp") and
             !std.mem.eql(u8, entry.path, entry_file_tmp))
         {
-            try file_list.append(b.pathJoin(&.{ dir_path, entry.path }));
+            const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, entry.path });
+            try file_list.append(full_path);
 
             // TODO
             // Join Paths in other Collect Directory Function
             std.debug.print("Source File Full Path: {s}\n", .{dir_path});
             std.debug.print("Source File Full Path: {s}\n", .{entry.path});
-            std.debug.print("Source File Full Path: {s}\n", .{b.pathJoin(&.{ dir_path, entry.path })});
+            std.debug.print("Source File Full Path: {s}\n", .{full_path});
         }
     }
 
@@ -384,31 +404,64 @@ pub fn build(b: *std.Build) void {
         .flags = &.{c_lang_version},
     });
 
-    // TODO
-    // Try add static Library
+    // Add External Librarys
+    for (libraries) |libary| {
+        // Libary Head
+        const lib = b.addStaticLibrary(.{
+            .name = libary.name,
+            .target = target,
+            .optimize = optimize,
+        });
+
+        // Add C Source Files
+        const library_c_files = collectCFiles(b, libary.source_path) catch unreachable;
+
+        lib.addCSourceFiles(.{ .files = library_c_files, .flags = &.{c_lang_version} });
+
+        // Add C++ Source Files
+        const library_cpp_files = collectCppFiles(b, libary.source_path) catch unreachable;
+
+        for (library_cpp_files) |file| {
+            std.debug.print("Print {s}\n", .{file});
+        }
+
+        lib.addCSourceFiles(.{ .files = library_cpp_files, .flags = &.{cpp_lang_version} });
+
+        lib.addIncludePath(b.path(libary.include_path));
+
+        // Add C and C++ Standard Library
+        lib.linkLibC();
+        lib.linkLibCpp();
+
+        // Add Library to the executable
+        exe.linkLibrary(lib);
+
+        // add Header files to the executable
+        exe.addIncludePath(b.path(libary.include_path));
+    }
 
     //
 
-    const dara_lib = b.addStaticLibrary(.{
-        .name = "dara_lib",
-        .target = target,
-        .optimize = optimize,
-    });
+    // const dara_lib = b.addStaticLibrary(.{
+    //     .name = "DARA_LIBARY",
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
 
-    // 📌 Quelle
-    dara_lib.addCSourceFiles(.{ .files = &.{"external/DARA_LIBARY/src/DARA.cpp"}, .flags = &.{cpp_lang_version} });
+    // // 📌 Quelle
+    // dara_lib.addCSourceFiles(.{ .files = &.{"external/DARA_LIBARY/src/DARA.cpp"}, .flags = &.{cpp_lang_version} });
 
-    // 📌 Include-Verzeichnis korrekt setzen (für #include "DARA_LIBARY/DARA.h")
-    dara_lib.addIncludePath(b.path("external/DARA_LIBARY/include"));
+    // // 📌 Include-Verzeichnis korrekt setzen (für #include "DARA_LIBARY/DARA.h")
+    // dara_lib.addIncludePath(b.path("external/DARA_LIBARY/include"));
 
-    dara_lib.linkLibC();
-    dara_lib.linkLibCpp();
+    // dara_lib.linkLibC();
+    // dara_lib.linkLibCpp();
 
-    exe.linkLibrary(dara_lib);
-    // exe.linkLibCpp();
+    // exe.linkLibrary(dara_lib);
+    // // exe.linkLibCpp();
 
-    // Auch hier: Include-Path setzen, wenn main.zig mit @cImport("DARA_LIBARY/DARA.h") arbeitet
-    exe.addIncludePath(b.path("external/DARA_LIBARY/include"));
+    // // Auch hier: Include-Path setzen, wenn main.zig mit @cImport("DARA_LIBARY/DARA.h") arbeitet
+    // exe.addIncludePath(b.path("external/DARA_LIBARY/include"));
 
     //
 
@@ -508,10 +561,42 @@ pub fn build(b: *std.Build) void {
         .flags = &.{c_lang_version},
     });
 
-    // Add Library Include Directories
-    for (include_paths) |path| {
-        tests.addIncludePath(b.path(path));
+    // Add External Librarys to the Test Library
+    for (libraries) |libary| {
+        // Libary Head
+        const lib = b.addStaticLibrary(.{
+            .name = libary.name,
+            .target = target,
+            .optimize = optimize,
+        });
+
+        // Add C Source Files
+        const library_c_files = collectCFiles(b, libary.source_path) catch unreachable;
+
+        lib.addCSourceFiles(.{ .files = library_c_files, .flags = &.{c_lang_version} });
+
+        // Add C++ Source Files
+        const library_cpp_files = collectCppFiles(b, libary.source_path) catch unreachable;
+
+        lib.addCSourceFiles(.{ .files = library_cpp_files, .flags = &.{cpp_lang_version} });
+
+        lib.addIncludePath(b.path(libary.include_path));
+
+        // Add C and C++ Standard Library
+        lib.linkLibC();
+        lib.linkLibCpp();
+
+        // Add Library to the executable
+        tests.linkLibrary(lib);
+
+        // add Header files to the executable
+        tests.addIncludePath(b.path(libary.include_path));
     }
+
+    // // Add Library Include Directories
+    // for (include_paths) |path| {
+    //     tests.addIncludePath(b.path(path));
+    // }
 
     // // Add Library Source Files
     // for (library_paths) |path| {
